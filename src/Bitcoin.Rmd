@@ -1,6 +1,6 @@
 ---
 title: "Time Series Analysis final Project - Competitive "
-author: "Team Members: 1.Rahul k. gupta (sxxxxxxx) 2.Terrie christensen (sxxxxxxx) 3.Napapach Dechawatthanaphokin (s3613572)"
+author: "Team Members: 1.Rahul k. gupta (s3635232) 2.Terrie christensen (s3664899) 3.Napapach Dechawatthanaphokin (s3613572)"
 date: "14 May 2018"
 output:
   pdf_document:
@@ -8,23 +8,6 @@ output:
     number_sections: yes
     toc: no
     toc_depth: 3
-  html_document:
-    df_print: paged
-    toc: no
-    toc_depth: '3'
-  word_document:
-    toc: no
-    toc_depth: '3'
-linkcolor: blue
-references:
-- author:
-  - family: Xie
-    given: YiHui
-    issued:
-    - year: 2018
-    publisher: Chapman and Hall/CRC
-    title: Dynamic Documents with R and knitr
-  id: knitr
 subtitle: MATH 1318 Time Series Analysis Final Project
 documentclass: article
 ---
@@ -54,6 +37,7 @@ library(fGarch)
 library(rugarch)
 library(zoo)
 library(ggplot2)
+require(readr)
 ```
 
 
@@ -367,7 +351,7 @@ autoplot(forecast(fit,h=10))
 ```
 
 ```{r}
-Bitcoin.forecast <- read.csv("../data/Bitcoin_Prices_Forecasts.csv", header=TRUE)
+Bitcoin.forecast <- read_csv("../data/Bitcoin_Prices_Forecasts.csv")
 Bitcoin.forecast$Date = as.Date(Bitcoin.forecast$Date,'%d/%m/%y')
 ```
 
