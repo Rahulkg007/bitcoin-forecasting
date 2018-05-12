@@ -238,48 +238,42 @@ plot(res1)
 model_111_css = arima(Bitcoin.boxcox, order=c(1,1,1),method='CSS')
 coeftest(model_111_css)
 
-model_010_ml = arima(Bitcoin.boxcox, order=c(0,1,0),method='ML')
-coeftest(model_010_ml)
+model_111_ml = arima(Bitcoin.boxcox, order=c(1,1,1),method='ML')
+coeftest(model_111_ml)
 
-# ARIMA(0,2,2)
-model_022_css = arima(Bitcoin.boxcox,order=c(0,1,2),method='CSS')
-coeftest(model_022_css)
+# ARIMA(2,1,2)
+model_212_css = arima(Bitcoin.boxcox,order=c(2,1,2),method='CSS')
+coeftest(model_212_css)
 
-model_022_ml = arima(Bitcoin.boxcox,order=c(0,1,2),method='ML')
-coeftest(model_022_ml)
+model_212_ml = arima(Bitcoin.boxcox,order=c(2,1,2),method='ML')
+coeftest(model_212_ml)
 
-# ARIMA(0,2,3)
-model_023_css = arima(Bitcoin.boxcox,order=c(0,1,3),method='CSS')
-coeftest(model_023_css)
+# ARIMA(4,1,3)
+model_413_css = arima(Bitcoin.boxcox,order=c(4,1,3),method='CSS')
+coeftest(model_413_css)
 
-model_023_ml = arima(Bitcoin.boxcox,order=c(0,1,3),method='ML')
-coeftest(model_023_ml)
+model_413_ml = arima(Bitcoin.boxcox,order=c(4,1,3),method='ML')
+coeftest(model_413_ml)
 
-# ARIMA(0,2,4)
-model_024_css = arima(Bitcoin.boxcox,order=c(0,2,4),method='CSS')
-coeftest(model_024_css)
+# ARIMA(4,1,4)
+model_414_css = arima(Bitcoin.boxcox,order=c(4,1,4),method='CSS')
+coeftest(model_414_css)
 
-model_024_ml = arima(Bitcoin.boxcox,order=c(0,2,4),method='ML')
-coeftest(model_024_ml)
+model_414_ml = arima(Bitcoin.boxcox,order=c(4,1,4),method='ML')
+coeftest(model_414_ml)
 
-# ARIMA(1,2,2)
-model_122_css = arima(Bitcoin.boxcox,order=c(1,2,2),method='CSS')
-coeftest(model_122_css)
+# ARIMA(5,1,4)
+model_514_css = arima(Bitcoin.boxcox,order=c(5,1,4),method='CSS')
+coeftest(model_514_css)
 
-model_122_ml = arima(Bitcoin.boxcox,order=c(1,2,2),method='ML')
-coeftest(model_122_ml)
+model_514_ml = arima(Bitcoin.boxcox,order=c(5,1,4),method='ML')
+coeftest(model_514_ml)
 
-# ARIMA(1,2,3)
-model_123_css = arima(Bitcoin.boxcox,order=c(1,2,3),method='CSS')
-coeftest(model_123_css)
-
-model_123_ml = arima(Bitcoin.boxcox,order=c(1,2,3),method='ML')
-coeftest(model_123_ml)
 ```
 
 ```{r}
-sort.score(AIC(model_021_ml,model_022_ml,model_023_ml,model_024_ml,model_122_ml,model_123_ml,model_124_ml,model_223_ml,model_224_ml,model_324_ml), score = "aic")
-sort.score(BIC(model_021_ml,model_022_ml,model_023_ml,model_024_ml,model_122_ml,model_123_ml,model_124_ml,model_223_ml,model_224_ml,model_324_ml), score = "bic" )
+sort.score(AIC(model_111_ml,model_212_ml,model_413_ml,model_414_ml,model_514_ml), score = "aic")
+sort.score(BIC(model_111_ml,model_212_ml,model_413_ml,model_414_ml,model_514_ml), score = "bic" )
 ```
 
 ```{r,fig.width=8,fig.height=5,warning=FALSE,message=FALSE,echo=FALSE}
