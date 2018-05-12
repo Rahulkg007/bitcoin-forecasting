@@ -242,13 +242,31 @@ plot(res1)
 # ARIMA(0,1,0),ARIMA(1,1,1),ARIMA(2,1,2),ARIMA(4,1,3)
 # ARIMA(4,1,4),ARIMA(5,1,4)
 
-# ARIMA(0,1,0)
+# ARIMA(1,1,1)
 model_111_css = arima(Bitcoin.boxcox, order=c(1,1,1),method='CSS')
 coeftest(model_111_css)
 
 model_111_ml = arima(Bitcoin.boxcox, order=c(1,1,1),method='ML')
 coeftest(model_111_ml)
 
+```
+
+```{r}
+# ARIMA(1,1,2)
+model_112_css = arima(Bitcoin.boxcox,order=c(1,1,2),method='CSS')
+coeftest(model_112_css)
+
+model_112_ml = arima(Bitcoin.boxcox,order=c(1,1,2),method='ML')
+coeftest(model_112_ml)
+```
+
+```{r}
+# ARIMA(2,1,1)
+model_211_css = arima(Bitcoin.boxcox,order=c(2,1,1),method='CSS')
+coeftest(model_211_css)
+
+model_211_ml = arima(Bitcoin.boxcox,order=c(2,1,1),method='ML')
+coeftest(model_211_ml)
 ```
 
 ```{r}
@@ -261,22 +279,22 @@ coeftest(model_212_ml)
 ```
 
 ```{r}
-# ARIMA(2,1,2)
-model_313_css = arima(Bitcoin.boxcox,order=c(3,1,3),method='CSS')
-coeftest(model_313_css)
+# ARIMA(3,1,2)
+model_312_css = arima(Bitcoin.boxcox,order=c(3,1,2),method='CSS')
+coeftest(model_312_css)
 
-model_313_ml = arima(Bitcoin.boxcox,order=c(3,1,3),method='ML')
-coeftest(model_313_ml)
+model_312_ml = arima(Bitcoin.boxcox,order=c(3,1,2),method='ML')
+coeftest(model_312_ml)
 ```
 
 
 ```{r}
-# ARIMA(4,1,3)
-model_413_css = arima(Bitcoin.boxcox,order=c(4,1,3),method='CSS')
-coeftest(model_413_css)
+# ARIMA(4,1,2)
+model_412_css = arima(Bitcoin.boxcox,order=c(4,1,2),method='CSS')
+coeftest(model_412_css)
 
-model_413_ml = arima(Bitcoin.boxcox,order=c(4,1,3),method='ML')
-coeftest(model_413_ml)
+model_412_ml = arima(Bitcoin.boxcox,order=c(4,1,2),method='ML')
+coeftest(model_412_ml)
 ```
 
 ```{r}
@@ -302,15 +320,15 @@ coeftest(model_514_ml)
 
 ```{r}
 source('sort.score.r')
-sort.score(stats::AIC(model_111_ml,model_212_ml,model_313_ml,model_413_ml,model_414_ml,model_514_ml), score = "aic")
-sort.score(stats::BIC(model_111_ml,model_212_ml,model_313_ml,model_413_ml,model_414_ml,model_514_ml), score = "bic" )
+sort.score(stats::AIC(model_111_ml,model_112_ml,model_211_ml,model_212_ml,model_312_ml,model_412_ml,model_414_ml,model_514_ml), score = "aic")
+sort.score(stats::BIC(model_111_ml,model_112_ml,model_211_ml,model_212_ml,model_312_ml,model_412_ml,model_414_ml,model_514_ml), score = "bic" )
 ```
 
 
 \vspace{12pt}
 
 ```{r}
-fit <- Arima(Bitcoin.2017.zoo, order=c(2,1,2), lambda = lambda)
+fit <- Arima(Bitcoin.2017.zoo, order=c(3,1,2), lambda = lambda)
 summary(fit)
 ```
 
@@ -362,7 +380,8 @@ Bitcoin.forecast$Date = as.Date(Bitcoin.forecast$Date,'%d/%m/%y')
 
 ```{r}
 source('MASE.r')
-MASE(Bitcoin.forecast$Closing.price, as.vector(tail(fitted(forecast(fit,h=10)),10)))
+MASE(Bitcoin.forecast$`Closing price`,
+     as.vector(tail(fitted(forecast(fit,h=10)),10)))
 ```
 
 
