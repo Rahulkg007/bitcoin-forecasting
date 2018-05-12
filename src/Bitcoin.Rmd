@@ -52,7 +52,8 @@ library(CombMSC)
 library(lmtest)
 library(fGarch)
 library(rugarch)
-
+library(zoo)
+library(ggplot2)
 ```
 
 
@@ -96,46 +97,55 @@ residual.analysis <- function(model, std = TRUE){
 
 ```{r}
 Bitcoin <- read.csv("../Bitcoin_Historical_Price.csv", header=TRUE)
-head(Bitcoin)
-
+Bitcoin$Date = as.Date(Bitcoin$Date,'%Y-%m-%d')
 ```
 
 
 
 ```{r}
-Bitcoin <- ts(as.vector(Bitcoin$Close), frequency = 1)
-class(Bitcoin)
-Bitcoin.raw = Bitcoin
+Bitcoin.zoo <- zoo(Bitcoin$Close, Bitcoin$Date)
+class(Bitcoin.zoo)
+Bitcoin.raw = Bitcoin.zoo
+```
+
+
+```{r}
+autoplot.zoo(Bitcoin.zoo) +
+  ylab('Closing Price') + 
+  ggtitle("Time series plot for bitcoin")
 ```
 
 
 ```{r}
 
-plot(Bitcoin,type='o',ylab='Closing Price', main= "Time series plot for bitcoin")
+Bitcoin.2017 = Bitcoin[Bitcoin$Date > as.Date("2017-04-01"),]
+Bitcoin.2017.zoo = zoo(Bitcoin.2017$Close, Bitcoin.2017$Date)
+autoplot(Bitcoin.2017.zoo)
 
+ggplot(Bitcoin.2017,aes(zlag(Close), Close)) + geom_point() +
+  ylab('Current Closing Price') + 
+  xlab('Previous Day Closing Price') +
+  ggtitle("Scatter plot of Bitcoin Daily Closing Prices")
 ```
 
 
 ```{r}
-plot(y=Bitcoin,x=zlag(Bitcoin),ylab='Closing Price', xlab='Previous Year of bitcoin', main= "Scatter plot of bitcoin")
+y = as.vector(Bitcoin.2017.zoo)
+x = zlag(Bitcoin.2017.zoo)     
+index = 2:length(x)      
+cor(y[index],x[index])
 ```
 
 
 ```{r}
-y = Bitcoin             # Read the bitcoin data into y
-x = zlag(Bitcoin)       # Generate first lag of the bitcoin data
-index = 2:length(x)      # Create an index to get rid of the first NA value in x
-cor(y[index],x[index])   # Calculate correlation between numerical values in x and y
-```
-
-
-```{r}
-model.ln = lm(Bitcoin~time(Bitcoin)) # label the linear trend model as model.ln
+model.ln = lm(Bitcoin.2017.zoo~time(Bitcoin.2017.zoo)) # label the linear trend model as model.ln
 summary(model.ln)
-plot(ts(fitted(model.ln)), ylim = c(min(c(fitted(model.ln),
-     as.vector(Bitcoin))), max(c(fitted(model.ln),as.vector(Bitcoin)))),
-     ylab='y' , main = "Fitted quadratic curve to bitcoin data", type="l",lty=2,col="red")
-lines(as.vector(Bitcoin),type="o")
+
+ggplot(Bitcoin.2017,aes(Date,Close))+ 
+  geom_line()  +
+  ylab('Closing Price') + 
+  ggtitle('Linear fitted Model Curve - Bitcoin Prices') +
+  geom_line(aes(y=fitted(model.ln)),color='#fc5e13')
 ```
 
 
