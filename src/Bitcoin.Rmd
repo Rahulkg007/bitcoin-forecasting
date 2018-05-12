@@ -12,6 +12,13 @@ subtitle: MATH 1318 Time Series Analysis Final Project
 documentclass: article
 ---
 
+
+```{r global_options, include=FALSE, warning=FALSE}
+require(knitr)
+opts_chunk$set(warning=FALSE, message=FALSE)
+```
+
+
 \newpage
 
 \tableofcontents
@@ -24,9 +31,9 @@ Bitcoin or BTC is a digital currency, otherwise known as a cryptocurrency. it wa
 
 Rahul Made these changes
 
-# Model Diagnosis
+# Initial Diagnosis
 
-```{r ,fig.width=8,fig.height=5,warning=FALSE,message=FALSE}
+```{r}
 # Import Libraries
 library(TSA)
 library(fUnitRoots)
@@ -38,48 +45,8 @@ library(rugarch)
 library(zoo)
 library(ggplot2)
 require(readr)
-```
+require(FitAR)
 
-
-```{r ,fig.width=8,fig.height=5,warning=FALSE,message=FALSE,echo=FALSE}
-# Require sort.score when knit to pdf, html
-sort.score <- function(x, score = c("bic", "aic")){
-  if (score == "aic"){
-    x[with(x, order(AIC)),]
-  } else if (score == "bic") {
-    x[with(x, order(BIC)),]
-  } else {
-    warning('score = "x" only accepts valid arguments ("aic","bic")')
-  }
-}
-```
-
-
-```{r}
-residual.analysis <- function(model, std = TRUE){
-  library(TSA)
-  library(FitAR)
-  if (std == TRUE){
-    res.model = rstandard(model)
-  }else{
-    res.model = residuals(model)
-  }
-  par(mfrow=c(3,2))
-  plot(res.model,type='o',ylab='Standardised residuals', main="Time series plot of standardised residuals")
-  abline(h=0)
-  hist(res.model,main="Histogram of standardised residuals")
-  qqnorm(res.model,main="QQ plot of standardised residuals")
-  qqline(res.model, col = 2)
-  acf(res.model,main="ACF of standardised residuals")
-  print(shapiro.test(res.model))
-  k=0
-  LBQPlot(res.model, lag.max = length(model$residuals)-1 , StartLag = k + 1, k = 0, SquaredQ = FALSE)
-  par(mfrow=c(1,1))
-}
-```
-
-
-```{r}
 Bitcoin <- read.csv("../data/Bitcoin_Historical_Price.csv", header=TRUE)
 Bitcoin$Date = as.Date(Bitcoin$Date,'%Y-%m-%d')
 ```
@@ -334,6 +301,7 @@ coeftest(model_514_ml)
 
 
 ```{r}
+source('sort.score.r')
 sort.score(stats::AIC(model_111_ml,model_212_ml,model_313_ml,model_413_ml,model_414_ml,model_514_ml), score = "aic")
 sort.score(stats::BIC(model_111_ml,model_212_ml,model_313_ml,model_413_ml,model_414_ml,model_514_ml), score = "bic" )
 ```
@@ -346,6 +314,41 @@ fit <- Arima(Bitcoin.2017.zoo, order=c(2,1,2), lambda = lambda)
 summary(fit)
 ```
 
+## Residual Analysis - ARIMA Model
+
+Below are the findings of residuals from linear model
+
+\vspace{12pt}
+
+```{r fig.cap=paste("\\label{fig:res_lin}Residual Analysis Quadratic fitted Model")}
+checkresiduals(fit)
+```
+
+
+\vspace{12pt}
+
+```{r fig.cap=paste("\\label{fig:res_lin_qq}Residual Analysis Linear fitted Model")}
+residual_analysis_qq(residuals(fit))
+```
+
+\vspace{12pt}
+
+```{r}
+shapiro.test(as.vector(residuals(fit)))
+```
+
+\vspace{12pt}
+
+```{r}
+x = residuals(fit)
+k=0
+LBQPlot(x, lag.max = length(x)-1 , StartLag = k + 1, k = 0, SquaredQ = FALSE)
+grid()
+```
+
+
+## Forecast 
+
 ```{r}
 autoplot(forecast(fit,h=10))
 ```
@@ -354,6 +357,8 @@ autoplot(forecast(fit,h=10))
 Bitcoin.forecast <- read_csv("../data/Bitcoin_Prices_Forecasts.csv")
 Bitcoin.forecast$Date = as.Date(Bitcoin.forecast$Date,'%d/%m/%y')
 ```
+
+## MASE Error
 
 ```{r}
 source('MASE.r')
