@@ -111,8 +111,9 @@ Bitcoin.raw = Bitcoin.zoo
 
 ```{r}
 autoplot.zoo(Bitcoin.zoo) +
-  ylab('Closing Price') + 
-  ggtitle("Time series plot for bitcoin")
+  ylab('Closing Price (USD)') + 
+  xlab('Time (days)') +
+  ggtitle("Time Series Plot for Daily Bitcoin Prices")
 ```
 
 
@@ -120,12 +121,20 @@ autoplot.zoo(Bitcoin.zoo) +
 
 Bitcoin.2017 = Bitcoin[Bitcoin$Date > as.Date("2017-04-01"),]
 Bitcoin.2017.zoo = zoo(Bitcoin.2017$Close, Bitcoin.2017$Date)
-autoplot(Bitcoin.2017.zoo)
+autoplot(Bitcoin.2017.zoo) +
+  geom_point(size=.5) +
+  ylab('Closing Price (USD)') + 
+  xlab('Time (days)') +
+  ggtitle("Time Series Plot for Daily Bitcoin Prices (2017-2018)")
+```
 
+## Scatter Plot and correlation
+
+```{r}
 ggplot(Bitcoin.2017,aes(zlag(Close), Close)) + geom_point() +
-  ylab('Current Closing Price') + 
-  xlab('Previous Day Closing Price') +
-  ggtitle("Scatter plot of Bitcoin Daily Closing Prices")
+  ylab('Current Closing Price (USD)') + 
+  xlab('Previous Day Closing Price (USD)') +
+  ggtitle("Scatter Plot of Bitcoin Daily Closing Prices")
 ```
 
 
@@ -136,41 +145,35 @@ index = 2:length(x)
 cor(y[index],x[index])
 ```
 
+## Linear Model
 
 ```{r}
 model.ln = lm(Bitcoin.2017.zoo~time(Bitcoin.2017.zoo)) # label the linear trend model as model.ln
 summary(model.ln)
+```
 
+```{r}
 ggplot(Bitcoin.2017,aes(Date,Close))+ 
   geom_line()  +
-  ylab('Closing Price') + 
-  ggtitle('Linear fitted Model Curve - Bitcoin Prices') +
+  ylab('Closing Price (USD)') + 
+  xlab('') +
+  ggtitle('Linear Fitted Model - Bitcoin Prices') +
   geom_line(aes(y=fitted(model.ln)),color='#fc5e13')
 ```
 
 
-
 ```{r}
-t = time(Bitcoin)
+t = as.vector(time(Bitcoin.2017.zoo))
 t2 = t^2
-model.qa = lm(Bitcoin~ t + t2) # label the quadratic trend model as model.qa
+model.qa = lm(Bitcoin.2017.zoo~ t + t2) # label the quadratic trend model as model.qa
 summary(model.qa)
-plot(ts(fitted(model.qa)), ylim = c(min(c(fitted(model.qa),
-     as.vector(Bitcoin))), max(c(fitted(model.qa),as.vector(Bitcoin)))),
-     ylab='y' , main = "Fitted quadratic curve to bitcoin data", type="l",lty=2,col="red")
-lines(as.vector(Bitcoin),type="o")
-```
 
-
-
-```{r}
-har.=harmonic(Bitcoin,0.5)
-model.har=lm(Bitcoin~har.)
-summary(model.har)
-plot(ts(fitted(model.har)), ylim = c(min(c(fitted(model.har),
-     as.vector(Bitcoin))), max(c(fitted(model.har),as.vector(Bitcoin)))),
-     ylab='y' , main = "Fitted harmony curve to bitcoin data", type="l",lty=2,col="red")
-lines(as.vector(Bitcoin),type="o")
+ggplot(Bitcoin.2017,aes(Date,Close))+ 
+  geom_line()  +
+  ylab('Closing Price (USD)') + 
+  xlab('') +
+  ggtitle('Quadratic fitted Model Curve - Bitcoin Daily Prices') +
+  geom_line(aes(y=fitted(model.qa)),color='#fc5e13')
 ```
 
 
@@ -178,179 +181,100 @@ lines(as.vector(Bitcoin),type="o")
 
 Auto regressive behaviour and non staionay
 Staionay is the first thing we need to check.
+
 ```{r}
-par(mfrow=c(1,2)) # To plot both ACF and PACF in the same panel of plots
-acf(Bitcoin)
-pacf(Bitcoin)
-par(mfrow=c(1,1)) 
+ggtsdisplay(Bitcoin.2017.zoo,
+            main = 'ACF and PACF of Bitcoin Prices', 
+            ylab='Closing Price (USD)')
 ```
 
 
 stategy to make stationay is transfromation.
 
 ```{r}
-#Bitcoin.transform = BoxCox.ar(Bitcoin, method = "yule-walker") 
-#Bitcoin.transform = BoxCox.ar(Bitcoin + abs(min(Bitcoin))+1) # You get an error saying the system is singular
-#Bitcoin.transform = BoxCox.ar(Bitcoin + abs(min(Bitcoin))+1, lambda = seq(-1, 1, 0.01))
-#Bitcoin.transform = BoxCox.ar(Bitcoin)
-#Bitcoin.transform$ci
-#lambda = 0.75 # 0.001
-#Bitcoin.cash = (Bitcoin^lambda-1)/lambda #<--formula BoxCox transfromation
-#plot(Bitcoin.cash,type='o',ylab='Los Angelos rainfall series')
+Bitcoin.transform = BoxCox.ar(Bitcoin.2017.zoo, method = 'yule-walker') 
+```
+
+```{r}
+lambda = sum(Bitcoin.transform$ci)/length(Bitcoin.transform$ci)
+Bitcoin.boxcox = (Bitcoin.2017.zoo^lambda - 1) / lambda 
+Bitcoin.diff = base::diff(Bitcoin.boxcox, differences = 1)
+autoplot(Bitcoin.diff) +
+  ylab('Closing Price (USD)') + 
+  ggtitle('Boxcox Transformed & First Differenced Series')
+```
+
+```{r}
+ggtsdisplay(Bitcoin.diff, lag.max = 96,
+            main = 'Boxcox Transformed & First Differenced ACF and PACF plots', 
+            ylab='')
+```
+
+```{r}
+adf.test(Bitcoin.diff)
 ```
 
 
 ```{r}
-log.Bitcoin = log(Bitcoin)
-plot(log.Bitcoin,type='o',ylab='Log-transformed of bitcoin data')
-adf.test(log.Bitcoin)
-```
-
-
-```{r}
-diff.log.Bitcoin = diff(log(Bitcoin), differences = 1)
-#diff.log.Bitcoin = diff(log(Bitcoin))
-plot(diff.log.Bitcoin,type='o',ylab='The first difference of log-transformed bitcoin')
-adf.test(diff.log.Bitcoin)
-```
-
-
-```{r}
-par(mfrow=c(1,2)) # To plot both ACF and PACF in the same panel of plots
-acf(diff.log.Bitcoin, lag.max=50)
-pacf(diff.log.Bitcoin, lag.max=50)
-par(mfrow=c(1,1)) 
-```
-
-
-```{r}
-eacf(diff.log.Bitcoin,ar.max = 12, ma.max = 12)
-#ARIMA(0,1,0),ARIMA(0,1,1),ARIMA(0,1,2),ARIMA(0,1,3)
-#ARIMA(1,1,1),ARIMA(0,1,2),ARIMA(0,1,3)
-#ARIMA(2,1,2),ARIMA(0,1,3)
-#ARIMA(3,1,3)
+eacf(Bitcoin.diff)
+# ARIMA(0,1,0),ARIMA(1,1,1),ARIMA(2,1,2),ARIMA(4,1,3)
 ```
 
 ```{r}
-res1 = armasubsets(y=diff.log.Bitcoin,nar=12,nma=12,y.name='test',ar.method='ols')
+res1 = armasubsets(y=Bitcoin.diff,nar=12,nma=12,y.name='test',ar.method='ols')
 plot(res1)
-
-```
-
-```{r}
-
-diff.log.Bitcoin2 = diff(log(Bitcoin), differences = 2)
-par(mfrow=c(1,1))
-plot(diff.log.Bitcoin2,type='o',ylab='Quarterly earnings ')
-# There is still some trend in ther series
-adf.test(diff.log.Bitcoin2)
+#ARIMA(4,1,4),ARIMA(5,1,4)
 ```
 
 
-
-```{r}
-par(mfrow=c(1,2)) # To plot both ACF and PACF in the same panel of plots
-acf(diff.log.Bitcoin2, lag.max=50)
-pacf(diff.log.Bitcoin2, lag.max=50)
-par(mfrow=c(1,1)) 
-```
-
-
-```{r}
-eacf(diff.log.Bitcoin2,ar.max = 12, ma.max = 12)
-#ARIMA(0,2,1),ARIMA(0,2,2),ARIMA(0,2,3),ARIMA(0,2,4)
-#ARIMA(1,2,2),ARIMA(1,2,3),ARIMA(1,2,4)
-#ARIMA(2,2,3),ARIMA(2,2,4),ARIMA(3,2,4)
-```
-
-
-```{r}
-res2 = armasubsets(y=diff.log.Bitcoin2,nar=12,nma=12,y.name='test',ar.method='ols')
-plot(res2)
-```
 
 
 ```{r}
 #The final set of possible models is 
-#{#ARIMA(0,2,1),ARIMA(0,2,2),ARIMA(0,2,3),ARIMA(0,2,4)
-#ARIMA(1,2,2),ARIMA(1,2,3),ARIMA(1,2,4)
-#ARIMA(2,2,3),ARIMA(2,2,4),ARIMA(3,2,4)}
+# ARIMA(0,1,0),ARIMA(1,1,1),ARIMA(2,1,2),ARIMA(4,1,3)
+# ARIMA(4,1,4),ARIMA(5,1,4)
 
-# ARIMA(0,2,1)
-model_021_css = arima(log.Bitcoin,order=c(0,2,1),method='CSS')
-coeftest(model_021_css)
+# ARIMA(0,1,0)
+model_111_css = arima(Bitcoin.boxcox, order=c(1,1,1),method='CSS')
+coeftest(model_111_css)
 
-model_021_ml = arima(log.Bitcoin,order=c(0,2,1),method='ML')
-coeftest(model_021_ml)
+model_010_ml = arima(Bitcoin.boxcox, order=c(0,1,0),method='ML')
+coeftest(model_010_ml)
 
 # ARIMA(0,2,2)
-model_022_css = arima(log.Bitcoin,order=c(0,2,2),method='CSS')
+model_022_css = arima(Bitcoin.boxcox,order=c(0,1,2),method='CSS')
 coeftest(model_022_css)
 
-model_022_ml = arima(log.Bitcoin,order=c(0,2,2),method='ML')
+model_022_ml = arima(Bitcoin.boxcox,order=c(0,1,2),method='ML')
 coeftest(model_022_ml)
 
 # ARIMA(0,2,3)
-model_023_css = arima(log.Bitcoin,order=c(0,2,3),method='CSS')
+model_023_css = arima(Bitcoin.boxcox,order=c(0,1,3),method='CSS')
 coeftest(model_023_css)
 
-model_023_ml = arima(log.Bitcoin,order=c(0,2,3),method='ML')
+model_023_ml = arima(Bitcoin.boxcox,order=c(0,1,3),method='ML')
 coeftest(model_023_ml)
 
 # ARIMA(0,2,4)
-model_024_css = arima(log.Bitcoin,order=c(0,2,4),method='CSS')
+model_024_css = arima(Bitcoin.boxcox,order=c(0,2,4),method='CSS')
 coeftest(model_024_css)
 
-model_024_ml = arima(log.Bitcoin,order=c(0,2,4),method='ML')
+model_024_ml = arima(Bitcoin.boxcox,order=c(0,2,4),method='ML')
 coeftest(model_024_ml)
 
 # ARIMA(1,2,2)
-model_122_css = arima(log.Bitcoin,order=c(1,2,2),method='CSS')
+model_122_css = arima(Bitcoin.boxcox,order=c(1,2,2),method='CSS')
 coeftest(model_122_css)
 
-model_122_ml = arima(log.Bitcoin,order=c(1,2,2),method='ML')
+model_122_ml = arima(Bitcoin.boxcox,order=c(1,2,2),method='ML')
 coeftest(model_122_ml)
 
 # ARIMA(1,2,3)
-model_123_css = arima(log.Bitcoin,order=c(1,2,3),method='CSS')
+model_123_css = arima(Bitcoin.boxcox,order=c(1,2,3),method='CSS')
 coeftest(model_123_css)
 
-model_123_ml = arima(log.Bitcoin,order=c(1,2,3),method='ML')
+model_123_ml = arima(Bitcoin.boxcox,order=c(1,2,3),method='ML')
 coeftest(model_123_ml)
-
-# ARIMA(1,2,4)
-model_124_css = arima(log.Bitcoin,order=c(1,2,4),method='CSS')
-coeftest(model_124_css)
-
-model_124_ml = arima(log.Bitcoin,order=c(1,2,4),method='ML')
-coeftest(model_124_ml)
-
-# ARIMA(2,2,3)
-model_223_css = arima(log.Bitcoin,order=c(2,2,3),method='CSS')
-coeftest(model_223_css)
-
-model_223_ml = arima(log.Bitcoin,order=c(2,2,3),method='ML')
-coeftest(model_223_ml)
-
-# ARIMA(2,2,4)
-model_224_css = arima(log.Bitcoin,order=c(2,2,4),method='CSS')
-coeftest(model_224_css)
-
-model_224_ml = arima(log.Bitcoin,order=c(2,2,4),method='ML')
-coeftest(model_224_ml)
-
-# ARIMA(3,2,4)
-model_324_css = arima(log.Bitcoin,order=c(3,2,4),method='CSS')
-coeftest(model_324_css)
-
-model_324_ml = arima(log.Bitcoin,order=c(3,2,4),method='ML')
-coeftest(model_324_ml)
-
-#{#ARIMA(0,2,1),ARIMA(0,2,2),ARIMA(0,2,3),ARIMA(0,2,4)
-#ARIMA(1,2,2),ARIMA(1,2,3),ARIMA(1,2,4)
-#ARIMA(2,2,3),ARIMA(2,2,4),ARIMA(3,2,4)}
-
-
 ```
 
 ```{r}
