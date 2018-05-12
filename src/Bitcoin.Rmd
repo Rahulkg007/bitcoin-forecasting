@@ -162,6 +162,41 @@ ggplot(Bitcoin.2017,aes(Date,Close))+
 ```
 
 
+## Residual Analysis - Linear Model
+
+Below are the findings of residuals from linear model
+
+\vspace{12pt}
+
+```{r fig.cap=paste("\\label{fig:res_lin}Residual Analysis Linear fitted Model")}
+residual_analysis_qq <- function(myresiduals) {
+data=as.data.frame(qqnorm( myresiduals , plot=F))
+ggplot(data,aes(x,y)) + 
+  geom_point() + 
+  geom_smooth(method="lm", se=FALSE, color='#e36209', size=.4)+
+  xlab('Theoretical') +
+  ylab('Sample') +
+  ggtitle('QQ Plot of Residuals')
+}
+
+checkresiduals(model.ln)
+```
+
+
+\vspace{12pt}
+
+```{r fig.cap=paste("\\label{fig:res_lin_qq}Residual Analysis Linear fitted Model")}
+residual_analysis_qq(residuals(model.ln))
+```
+
+\vspace{12pt}
+
+```{r}
+shapiro.test(as.vector(residuals(model.ln)))
+```
+
+## Quadratic Model
+
 ```{r}
 t = as.vector(time(Bitcoin.2017.zoo))
 t2 = t^2
@@ -176,6 +211,29 @@ ggplot(Bitcoin.2017,aes(Date,Close))+
   geom_line(aes(y=fitted(model.qa)),color='#fc5e13')
 ```
 
+
+## Residual Analysis - Linear Model
+
+Below are the findings of residuals from linear model
+
+\vspace{12pt}
+
+```{r fig.cap=paste("\\label{fig:res_lin}Residual Analysis Quadratic fitted Model")}
+checkresiduals(model.qa)
+```
+
+
+\vspace{12pt}
+
+```{r fig.cap=paste("\\label{fig:res_lin_qq}Residual Analysis Linear fitted Model")}
+residual_analysis_qq(residuals(model.qa))
+```
+
+\vspace{12pt}
+
+```{r}
+shapiro.test(as.vector(residuals(model.qa)))
+```
 
 # Models for Nonstationary Time Series
 
