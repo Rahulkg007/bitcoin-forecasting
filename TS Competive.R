@@ -89,3 +89,5 @@ df2 <- df %>%
 
 data.zoo = zoo(df$Price, df$Date)
 autoplot(data.zoo)
+
+

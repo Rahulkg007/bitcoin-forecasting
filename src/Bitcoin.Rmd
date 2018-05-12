@@ -96,7 +96,7 @@ residual.analysis <- function(model, std = TRUE){
 
 
 ```{r}
-Bitcoin <- read.csv("../Bitcoin_Historical_Price.csv", header=TRUE)
+Bitcoin <- read.csv("../data/Bitcoin_Historical_Price.csv", header=TRUE)
 Bitcoin$Date = as.Date(Bitcoin$Date,'%Y-%m-%d')
 ```
 
@@ -169,14 +169,14 @@ Below are the findings of residuals from linear model
 \vspace{12pt}
 
 ```{r fig.cap=paste("\\label{fig:res_lin}Residual Analysis Linear fitted Model")}
-residual_analysis_qq <- function(myresiduals) {
+residual_analysis_qq <- function(myresiduals, title = 'QQ Plot of Residuals') {
 data=as.data.frame(qqnorm( myresiduals , plot=F))
 ggplot(data,aes(x,y)) + 
   geom_point() + 
   geom_smooth(method="lm", se=FALSE, color='#e36209', size=.4)+
   xlab('Theoretical') +
   ylab('Sample') +
-  ggtitle('QQ Plot of Residuals')
+  ggtitle(title)
 }
 
 checkresiduals(model.ln)
@@ -263,7 +263,7 @@ autoplot(Bitcoin.diff) +
 ```
 
 ```{r}
-ggtsdisplay(Bitcoin.diff, lag.max = 96,
+ggtsdisplay(Bitcoin.diff, lag.max = 96,ci.type='ma',
             main = 'Boxcox Transformed & First Differenced ACF and PACF plots', 
             ylab='')
 ```
@@ -279,11 +279,10 @@ eacf(Bitcoin.diff)
 ```
 
 ```{r}
-res1 = armasubsets(y=Bitcoin.diff,nar=12,nma=12,y.name='test',ar.method='ols')
+res1 = armasubsets(y=Bitcoin.diff,nar=14,nma=14,y.name='test',ar.method='mle')
 plot(res1)
 #ARIMA(4,1,4),ARIMA(5,1,4)
 ```
-
 
 
 
@@ -299,19 +298,37 @@ coeftest(model_111_css)
 model_111_ml = arima(Bitcoin.boxcox, order=c(1,1,1),method='ML')
 coeftest(model_111_ml)
 
+```
+
+```{r}
 # ARIMA(2,1,2)
 model_212_css = arima(Bitcoin.boxcox,order=c(2,1,2),method='CSS')
 coeftest(model_212_css)
 
 model_212_ml = arima(Bitcoin.boxcox,order=c(2,1,2),method='ML')
 coeftest(model_212_ml)
+```
 
+```{r}
+# ARIMA(2,1,2)
+model_313_css = arima(Bitcoin.boxcox,order=c(3,1,3),method='CSS')
+coeftest(model_313_css)
+
+model_313_ml = arima(Bitcoin.boxcox,order=c(3,1,3),method='ML')
+coeftest(model_313_ml)
+```
+
+
+```{r}
 # ARIMA(4,1,3)
 model_413_css = arima(Bitcoin.boxcox,order=c(4,1,3),method='CSS')
 coeftest(model_413_css)
 
 model_413_ml = arima(Bitcoin.boxcox,order=c(4,1,3),method='ML')
 coeftest(model_413_ml)
+```
+
+```{r}
 
 # ARIMA(4,1,4)
 model_414_css = arima(Bitcoin.boxcox,order=c(4,1,4),method='CSS')
@@ -319,7 +336,9 @@ coeftest(model_414_css)
 
 model_414_ml = arima(Bitcoin.boxcox,order=c(4,1,4),method='ML')
 coeftest(model_414_ml)
+```
 
+```{r}
 # ARIMA(5,1,4)
 model_514_css = arima(Bitcoin.boxcox,order=c(5,1,4),method='CSS')
 coeftest(model_514_css)
@@ -329,68 +348,39 @@ coeftest(model_514_ml)
 
 ```
 
+
 ```{r}
-sort.score(AIC(model_111_ml,model_212_ml,model_413_ml,model_414_ml,model_514_ml), score = "aic")
-sort.score(BIC(model_111_ml,model_212_ml,model_413_ml,model_414_ml,model_514_ml), score = "bic" )
-```
-
-```{r,fig.width=8,fig.height=5,warning=FALSE,message=FALSE,echo=FALSE}
-residual.analysis(model = model_021_ml)
-par(mfrow=c(1,1))
-# There is no problem with the diagnostic plots.
-
-# We applied log transformtion and second difference. To take them back:
-log.data = log(Bitcoin.raw)
-log.data.diff2.back = diffinv(diff.log.Bitcoin2, differences = 2, xi = data.matrix(log.data[1:2]))
-log.data.diff2.back = exp(log.data.diff2.back)
+sort.score(stats::AIC(model_111_ml,model_212_ml,model_313_ml,model_413_ml,model_414_ml,model_514_ml), score = "aic")
+sort.score(stats::BIC(model_111_ml,model_212_ml,model_313_ml,model_413_ml,model_414_ml,model_514_ml), score = "bic" )
 ```
 
 
+\vspace{12pt}
+
 ```{r}
-library(forecast)
-fit = Arima(Bitcoin.raw,c(0,2,1)) 
-plot(forecast(fit,h=10))
+fit <- Arima(Bitcoin.2017.zoo, order=c(2,1,2), lambda = lambda)
+summary(fit)
 ```
 
 ```{r}
-McLeod.Li.test(y=diff.log.Bitcoin2,main="McLeod-Li Test Statistics for Daily Google Returns")
-# McLeod-Li test is significnat at 5% level of significance for all lags. This gives a strong idea about existence of volatiliy clustering.
-qqnorm(diff.log.Bitcoin2,main="Q-Q Normal Plot of Daily Google Returns")
-qqline(diff.log.Bitcoin2) # Fat tails is in accordance with volatiliy clustering
+autoplot(forecast(fit,h=10))
 ```
 
 ```{r}
-par(mfrow=c(1,2))
-acf(diff.log.Bitcoin2, main="The sample ACF plot for return series")
-pacf(diff.log.Bitcoin2, main="The sample PACF plot for return series")
-eacf(diff.log.Bitcoin2)
+Bitcoin.forecast <- read.csv("../data/Bitcoin_Prices_Forecasts.csv", header=TRUE)
+Bitcoin.forecast$Date = as.Date(Bitcoin.forecast$Date,'%d/%m/%y')
 ```
 
 ```{r}
-abs.diff.log.Bitcoin2 = abs(diff.log.Bitcoin2)
-sq.diff.log.Bitcoin2 = diff.log.Bitcoin2^2
+source('MASE.r')
+MASE(Bitcoin.forecast$Closing.price, as.vector(tail(fitted(forecast(fit,h=10)),10)))
 ```
 
 
-```{r}
-par(mfrow=c(1,2))
-acf(abs.diff.log.Bitcoin2, ci.type="ma",main="The sample ACF plot for absolute return series")
-pacf(abs.diff.log.Bitcoin2, main="The sample PACF plot for absolute return series")
-eacf(abs.diff.log.Bitcoin2)
-```
-
 
 ```{r}
-par(mfrow=c(1,2))
-acf(sq.diff.log.Bitcoin2, ci.type="ma",main="The sample ACF plot for squared return series")
-pacf(sq.diff.log.Bitcoin2, main="The sample PACF plot for squared return series")
-eacf(sq.diff.log.Bitcoin2)
-```
+McLeod.Li.test(y=Bitcoin.2017.zoo,main="McLeod-Li Test Statistics for Bitcoin")
 
-```{r}
-m.11 = garch(diff.log.Bitcoin2,order=c(1,1),trace = FALSE)
-summary(m.11) # All the coefficients are significant at 5% level of significance.
-m.11_2 = garchFit(formula = ~garch(1,1), data =diff.log.Bitcoin2 )
-summary(m.11_2)
+residual_analysis_qq(Bitcoin.2017.zoo, 'QQ Plot')
 ```
 
