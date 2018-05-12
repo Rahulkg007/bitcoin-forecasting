@@ -41,7 +41,8 @@ Bitcoin or BTC is a digital currency, otherwise known as a cryptocurrency. it wa
 
 # Model Diagnosis
 
-```{r ,fig.width=8,fig.height=5,warning=FALSE,message=FALSE,echo=FALSE}
+```{r ,fig.width=8,fig.height=5,warning=FALSE,message=FALSE}
+# Import Libraries
 library(TSA)
 library(fUnitRoots)
 library(forecast)
