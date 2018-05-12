@@ -39,6 +39,8 @@ documentclass: article
 
 Bitcoin or BTC is a digital currency, otherwise known as a cryptocurrency. it was introduced to markets in 2009 by 'Satoshi Nakamoto.' The most notable aspect of BTC is that no banks or financial institutions are needed to facilitate trades. Additionally, it runs as a virtually anonymous financial system whereby buyers and sellers do not need to input their names, addresses or any other personally identifiable information to transfer BTC.
 
+Rahul Made these changes
+
 # Model Diagnosis
 
 ```{r ,fig.width=8,fig.height=5,warning=FALSE,message=FALSE}
