@@ -392,3 +392,81 @@ McLeod.Li.test(y=Bitcoin.2017.zoo,main="McLeod-Li Test Statistics for Bitcoin")
 residual_analysis_qq(Bitcoin.2017.zoo, 'QQ Plot')
 ```
 
+# Heteroscedasticity Models
+
+```{r}
+McLeod.Li.test(y=Bitcoin.2017.zoo,main="McLeod-Li Test Statistics for Daily Google Returns")
+```
+
+McLeod-Li test is significnat at 5% level of significance for all lags. This gives a strong idea about existence of volatiliy clustering.
+
+
+```{r}
+#So we'll use absolute value and square transformations to figure out this ARCH effect.
+abs.bitcoin = abs(Bitcoin.2017.zoo)
+sq.bitcoin = Bitcoin.2017.zoo^2
+
+par(mfrow=c(1,2))
+acf(abs.bitcoin, ci.type="ma",main="The sample ACF plot for absolute return series")
+pacf(abs.bitcoin, main="The sample PACF plot for absolute return series")
+```
+
+
+```{r}
+eacf(abs.bitcoin)
+```
+# After the absolute value transformation, we boserve many signficicant lags in 
+#both ACF and PACF. Also, EACF do not suggest an ARMA(0,0) model.
+# From the EACF, we can identify ARMA(1,0), ARMA(1,1), and ARMA(2,1) models for absolute 
+#value series. 
+# These models correspond to parameter settings of [max(1,1),1], [max(1,2),1] and [max(2,2),2]. 
+# So the corresponding tentative GARCH models are GARCH(0,1), GARCH(1,1), GARCH(1,2).
+
+```{r}
+par(mfrow=c(1,2))
+acf(sq.bitcoin, ci.type="ma",main="The sample ACF plot for squared return series")
+pacf(sq.bitcoin, main="The sample PACF plot for squared return series")
+```
+
+```{r}
+eacf(sq.bitcoin)
+```
+# After the square transformation, we boserve many signficicant lags in both ACF and PACF. Also, EACF do not suggest an ARMA(0,0) model.
+# From the EACF, we can identify ARMA(1,1), ARMA(1,2), and ARMA(2,2) models for squared series. 
+# These models correspond to parameter settings of [max(1,1),1], [max(1,2),1], [max(1,2),2], and [max(2,2),2]. So the corresponding 
+# tentative GARCH models are GARCH(1,1), GARCH(2,1), GARCH(2,2).
+
+```{r}
+m.11 = garch(Bitcoin.2017.zoo,order=c(1,1),trace = FALSE)
+summary(m.11) # All the coefficients are significant at 5% level of significance.
+m.11_2 = garchFit(formula = ~garch(1,1), data =Bitcoin.2017.zoo )
+summary(m.11_2)
+
+m.12 = garch(google,order=c(1,2),trace = FALSE)
+summary(m.12)# All the coefficients but aplha_2 are significant at 5% level of significance.
+m.12_2 = garchFit(formula = ~garch(2,1), data =google, trace = FALSE )
+summary(m.12_2)
+
+m.22 = garch(google,order=c(2,2),trace = FALSE)
+summary(m.22) # Higher order parameters are insignificant
+m.22_2 = garchFit(formula = ~garch(2,2), data =google, trace = FALSE, cond.dist = "QMLE" )
+summary(m.22_2)
+
+residual.analysis(m.11,class="GARCH",start=2)
+
+residual.analysis(m.12,class="GARCH",start=3)
+
+residual.analysis(m.22,class="GARCH",start=3)
+
+
+#For all models, we get suitable diagnostic check results. So, we will go on with GARCH(1,1) model.
+
+par(mfrow=c(1,1))
+plot((fitted(m.11)[,1])^2,type='l',ylab='Conditional Variance',xlab='t',main="Estimated Conditional Variances of the Daily Returns")
+# Changes in conditional variance at the beginning of the series and between observations 300 and 400, then the conditional variance settles down. 
+# 
+
+fGarch::predict(m.11_2,n.ahead=100,trace=FALSE,plot=TRUE) 
+# Forecasts for the confidance limits are based on the forecasts of conditional variance.
+```
+
