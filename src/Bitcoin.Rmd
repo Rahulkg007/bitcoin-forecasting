@@ -8,6 +8,8 @@ output:
     number_sections: yes
     toc: no
     toc_depth: 3
+    includes:
+      in_header: preamble-latex.tex
 subtitle: MATH 1318 Time Series Analysis Final Project
 documentclass: article
 ---
@@ -27,9 +29,19 @@ opts_chunk$set(warning=FALSE, message=FALSE)
 
 # Introduction \label{sec1}
 
-Bitcoin or BTC is a digital currency, otherwise known as a cryptocurrency. it was introduced to markets in 2009 by 'Satoshi Nakamoto.' The most notable aspect of BTC is that no banks or financial institutions are needed to facilitate trades. Additionally, it runs as a virtually anonymous financial system whereby buyers and sellers do not need to input their names, addresses or any other personally identifiable information to transfer BTC.
+Bitcoin is a type of cryptocurrency, i.e. it is a digital currency which uses encryption techniques to generate units of the currency and verify the transfer of funds. Bitcoin is a decentralised currency, which operates independently of a central bank. An estimated 2.9 to 5.8 million unique users have a *cryptocurrency wallet*, of which most use bitcoin. The price of bitcoin has gone through various cycles of appreciation and depreciation, known as bubbles and bursts, with price fluctuations up to a magnitude of a few thousand USD in the space of a day, so that the currency has become renown for its volatility. The bitcoin historical price data gathered from the CoinMarketCap.
+This time series will be modelled using regression, ARIMA and GARCH methods. The report details;
 
-Rahul Made these changes
+* Description of the time series 
+
+* Model specification 
+
+* Model fitting and selection 
+
+* Diagnostic checking
+
+* Predict the value of bitcoin for the following 10 days 
+
 
 # Initial Diagnosis
 
@@ -49,27 +61,31 @@ require(FitAR)
 
 Bitcoin <- read.csv("../data/Bitcoin_Historical_Price.csv", header=TRUE)
 Bitcoin$Date = as.Date(Bitcoin$Date,'%Y-%m-%d')
-```
-
-
-
-```{r}
 Bitcoin.zoo <- zoo(Bitcoin$Close, Bitcoin$Date)
-class(Bitcoin.zoo)
 Bitcoin.raw = Bitcoin.zoo
 ```
 
+\vspace{12pt}
 
-```{r}
+Data is converted to time series object using zoo library. Figure \ref{fig:bitcoin_orig} shows the daily closing price of bitcoin from the 27th Apr 2013 to the 3rd Mar 2018, given in USD. 
+
+
+\vspace{12pt}
+
+```{r fig.cap=paste("\\label{fig:bitcoin_orig}Time Series of Daily Bitcoin Prices")}
 autoplot.zoo(Bitcoin.zoo) +
   ylab('Closing Price (USD)') + 
   xlab('Time (days)') +
   ggtitle("Time Series Plot for Daily Bitcoin Prices")
 ```
 
+\vspace{12pt}
 
-```{r}
+Figure \ref{fig:bitcoin_subset} shows time series of last one year
 
+\vspace{12pt}
+
+```{r fig.cap=paste("\\label{fig:bitcoin_subset}Subset Time Series of Daily Bitcoin Prices")}
 Bitcoin.2017 = Bitcoin[Bitcoin$Date > as.Date("2017-04-01"),]
 Bitcoin.2017.zoo = zoo(Bitcoin.2017$Close, Bitcoin.2017$Date)
 autoplot(Bitcoin.2017.zoo) +
@@ -442,31 +458,15 @@ summary(m.11) # All the coefficients are significant at 5% level of significance
 m.11_2 = garchFit(formula = ~garch(1,1), data =Bitcoin.2017.zoo )
 summary(m.11_2)
 
-m.12 = garch(google,order=c(1,2),trace = FALSE)
+m.12 = garch(Bitcoin.2017.zoo,order=c(1,2),trace = FALSE)
 summary(m.12)# All the coefficients but aplha_2 are significant at 5% level of significance.
-m.12_2 = garchFit(formula = ~garch(2,1), data =google, trace = FALSE )
+m.12_2 = garchFit(formula = ~garch(2,1), data =Bitcoin.2017.zoo, trace = FALSE )
 summary(m.12_2)
 
-m.22 = garch(google,order=c(2,2),trace = FALSE)
+m.22 = garch(Bitcoin.2017.zoo,order=c(2,2),trace = FALSE)
 summary(m.22) # Higher order parameters are insignificant
-m.22_2 = garchFit(formula = ~garch(2,2), data =google, trace = FALSE, cond.dist = "QMLE" )
+m.22_2 = garchFit(formula = ~garch(2,2), data =Bitcoin.2017.zoo, trace = FALSE, cond.dist = "QMLE" )
 summary(m.22_2)
 
-residual.analysis(m.11,class="GARCH",start=2)
-
-residual.analysis(m.12,class="GARCH",start=3)
-
-residual.analysis(m.22,class="GARCH",start=3)
-
-
-#For all models, we get suitable diagnostic check results. So, we will go on with GARCH(1,1) model.
-
-par(mfrow=c(1,1))
-plot((fitted(m.11)[,1])^2,type='l',ylab='Conditional Variance',xlab='t',main="Estimated Conditional Variances of the Daily Returns")
-# Changes in conditional variance at the beginning of the series and between observations 300 and 400, then the conditional variance settles down. 
-# 
-
-fGarch::predict(m.11_2,n.ahead=100,trace=FALSE,plot=TRUE) 
-# Forecasts for the confidance limits are based on the forecasts of conditional variance.
 ```
 
