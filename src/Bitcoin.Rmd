@@ -1,27 +1,23 @@
 ---
-title: 'Time Series Analysis final Project - Competitive '
-author: 'Team Members: 1.Rahul k. gupta (s3635232), 2.Terrie christensen (s3664899),
-  3.Napapach Dechawatthanaphokin (s3613572)'
-date: "14 May 2018"
+title: Bitcoin Closing Prices Forecasting
+author: 'Team Members: 1.Rahul k. gupta (s3635232), 2.Terrie christensen (s3664899), 3.Napapach Dechawatthanaphokin (s3613572)'
+date: 27 May 2018
 output:
   pdf_document:
     fig_caption: yes
     includes:
       in_header: preamble-latex.tex
-    number_sections: yes
     toc: no
     toc_depth: 3
-  html_document:
-    df_print: paged
-    toc: no
-    toc_depth: '3'
-subtitle: MATH 1318 Time Series Analysis Final Project
+subtitle: MATH 1318 Time Series Analysis - Final Project
 documentclass: article
+bibliography: references.bib
 ---
 
 
 ```{r global_options, include=FALSE, warning=FALSE}
 require(knitr)
+library(kableExtra)
 opts_chunk$set(warning=FALSE, message=FALSE)
 ```
 
@@ -34,8 +30,17 @@ opts_chunk$set(warning=FALSE, message=FALSE)
 
 # Introduction \label{sec1}
 
-Bitcoin is a type of cryptocurrency, i.e. it is a digital currency which uses encryption techniques to generate units of the currency and verify the transfer of funds. Bitcoin is a decentralised currency, which operates independently of a central bank. An estimated 2.9 to 5.8 million unique users have a *cryptocurrency wallet*, of which most use bitcoin. The price of bitcoin has gone through various cycles of appreciation and depreciation, known as bubbles and bursts, with price fluctuations up to a magnitude of a few thousand USD in the space of a day, so that the currency has become renown for its volatility. The bitcoin historical price data gathered from the CoinMarketCap.
-This time series will be modelled using regression, ARIMA and GARCH methods. The report details;
+Bitcoin is a type of cryptocurrency, i.e. it is a digital currency which uses encryption techniques to generate units of the currency and verify the transfer of funds. Bitcoin is a decentralised currency, which operates independently of a central bank [@bitcoinWiki]. An estimated 2.9 to 5.8 million unique users have a *cryptocurrency wallet*, of which most use bitcoin. The price of bitcoin has gone through various cycles of appreciation and depreciation, known as bubbles and bursts, with price fluctuations up to a magnitude of a few thousand USD in the space of a day, so that the currency has become renown for its volatility. 
+
+\vspace{12pt}
+
+```{r, fig.cap=paste("\\label{fig:bitcoin_graphics}Bitcoin Illustration"), echo=FALSE, out.width = "300px"}
+knitr::include_graphics('../images/bitcoin.jpg')
+```
+
+\vspace{12pt}
+
+The bitcoin historical price data gathered from the CoinMarketCap. This time series will be modelled using regression, ARIMA and GARCH methods. The report details:
 
 * Description of the time series 
 
@@ -63,6 +68,7 @@ library(zoo)
 library(ggplot2)
 require(readr)
 require(FitAR)
+require(knitr)
 
 Bitcoin <- read.csv("../data/Bitcoin_Historical_Price.csv", header=TRUE)
 Bitcoin$Date = as.Date(Bitcoin$Date,'%Y-%m-%d')
@@ -72,7 +78,15 @@ Bitcoin.raw = Bitcoin.zoo
 
 \vspace{12pt}
 
-Data is converted to time series object using zoo library. Figure \ref{fig:bitcoin_orig} shows the daily closing price of bitcoin from the 27th Apr 2013 to the 3rd Mar 2018, given in USD. 
+Data is converted to time series object using zoo library. Figure \ref{fig:bitcoin_orig} shows the daily closing price of bitcoin from the 27th Apr 2013 to the 3rd Mar 2018, given in USD. Main characteristics of the time series:
+
+* Change in trend, at ~ 2017 
+
+* Change in variance, large spikes in price at the end of the time series 
+
+* Auto regressive behavior 
+
+A flat trend is observed from the start of the time series to early 2017. Next we'll filter series to remove the initial flat trend. 
 
 
 \vspace{12pt}
@@ -86,22 +100,14 @@ autoplot.zoo(Bitcoin.zoo) +
 
 \vspace{12pt}
 
-Figure \ref{fig:bitcoin_orig} shows the time series for the daily closing price of bitcoin from the 27/04/2013 to the 03/03/2018, given in USD. 
+## Subset Series
 
-Main characteristics of the time series;
-
-* Change in trend, at ~ 2017 
-
-* Change in variance, large spikes in price at the end of the time series 
-
-* Auto regressive behavior 
-
-A flat trend is observed from the start of the time series to early 2017.
-
+Figure \ref{fig:bitcoin_subset} shows The *flat* part of the time series is removed,  to better model the later part of the time series which shows a change in bitcoin price. The plot shows the daily closing price of bitcoin from the 01-Apr-2017 to the 03-Mar-2018, given in USD. Features are similar to original series
 
 \vspace{12pt}
 
-```{r fig.cap=paste("\\label{fig:bitcoin_subset1}Subset Time Series of Daily Bitcoin Prices")}
+
+```{r fig.cap=paste("\\label{fig:bitcoin_subset}Subset Time Series of Daily Bitcoin Prices")}
 Bitcoin.2017 = Bitcoin[Bitcoin$Date > as.Date("2017-04-01"),]
 Bitcoin.2017.zoo = zoo(Bitcoin.2017$Close, Bitcoin.2017$Date)
 autoplot(Bitcoin.2017.zoo) +
@@ -113,25 +119,17 @@ autoplot(Bitcoin.2017.zoo) +
 
 \vspace{12pt}
 
-Figure \ref{fig:bitcoin_subset1} shows The 'flat' part of the time series is removed,  to better model the later part of the time series which shows a change in bitcoin price. The plot shows the daily closing price of bitcoin from the 01/04/2017 to the 03/03/2018, given in USD. 
+## Scatter Plot and correlation
 
+Figure \ref{fig:bitcoin_scatter} shows the scatter plot of the relationship between consecutive points, to determine the presence of auto regressive behaviour. Correlation value of 0.9935 was calculated.
 
-Main characteristics of the time series;
-
-* Change in trend
-
-* Change in variance, large spikes in price at the end of the time series
-
-* Auto regressive behavior 
-
+This is indicative of a strong positive correlation between neighboring Bitcoin values, and in turn the presence of auto correlation.
 
 \vspace{12pt}
 
-
-## Scatter Plot and correlation
-
-```{r fig.cap=paste("\\label{fig:bitcoin_subset2}Scatter Plot of Bitcoin Daily Closing Prices")}
-ggplot(Bitcoin.2017,aes(zlag(Close), Close)) + geom_point() +
+```{r fig.cap=paste("\\label{fig:bitcoin_scatter}Scatter Plot of Bitcoin Daily Closing Prices")}
+ggplot(Bitcoin.2017,aes(zlag(Close), Close)) + 
+  geom_point() +
   ylab('Current Closing Price (USD)') + 
   xlab('Previous Day Closing Price (USD)') +
   ggtitle("Scatter Plot of Bitcoin Daily Closing Prices")
@@ -139,11 +137,6 @@ ggplot(Bitcoin.2017,aes(zlag(Close), Close)) + geom_point() +
 
 \vspace{12pt}
 
-Figure \ref{fig:bitcoin_subset2} shows the scatter plot of the relationship between consecutive points, to determine the presence of auto regressive behaviour which a correlation index of 0.9935 was calculated.
-
-This is indicative of a strong positive correlation between neighboring Bitcoin values, and in turn the presence of auto correlation.
-
-\vspace{12pt}
 
 ```{r}
 y = as.vector(Bitcoin.2017.zoo)
@@ -152,14 +145,24 @@ index = 2:length(x)
 cor(y[index],x[index])
 ```
 
+# Regression Models
+
+Here we'll try fitting linear and quadratic model in bitcoin closing prices. Data has no seasonality so harmonic model is not applicable. 
+
 ## Linear Model
 
 ```{r}
-model.ln = lm(Bitcoin.2017.zoo~time(Bitcoin.2017.zoo)) # label the linear trend model as model.ln
+model.ln = lm(Bitcoin.2017.zoo~time(Bitcoin.2017.zoo))
 summary(model.ln)
 ```
 
-```{r fig.cap=paste("\\label{fig:bitcoin_subset3}Linear Fitted Model - Bitcoin Prices")}
+\vspace{12pt}
+
+Figure \ref{fig:bitcoin_linear} shows the plots give the regression models for the linear are statistically significant, with the same *p-value* < 2.2e-16 and *R-squared values* 0.7119.
+
+\vspace{12pt}
+
+```{r fig.cap=paste("\\label{fig:bitcoin_linear}Bitcoin - Linear Fitted Model")}
 ggplot(Bitcoin.2017,aes(Date,Close))+ 
   geom_line()  +
   ylab('Closing Price (USD)') + 
@@ -170,18 +173,21 @@ ggplot(Bitcoin.2017,aes(Date,Close))+
 
 \vspace{12pt}
 
-Figure \ref{fig:bitcoin_subset3} shows the plots give the regression models for the linear are statistically significant, with the same p-value of 2.2e-16 and R-squared values; 0.7119.
-
-
-\vspace{12pt}
-
 ## Residual Analysis - Linear Model
 
-Below are the findings of residuals from linear model
+Below are the findings of residuals from linear model:
+
+* Figure \ref{fig:res_lin} shows the time series plot, ACF, histogram of the standardized residuals for the linear model of the Bitcoin time series
+
+* The standardized residuals show large deviations from the mean 0 in the (time series) plot, and an asymmetric distribution in the histogram, suggesting large errors. The QQ-plot in figure \ref{fig:lin_qq} also shows points diverging away from the straight line at either tail, indicating the residuals are not normally distributed. The ACF shows a slow decaying pattern with many significant lags, suggestive of auto correlation.
+
+* The Shapiro-Wilk test of normality returned a p-value of 1.204e-15, so the NULL hypothesis is rejected, again suggesting that the residuals are not derived from a normally distributed population.
+
+The linear model does not pass the diagnostic checks, thus the linear model does not capture all the information in the time series and is not suitable for forecasting.
 
 \vspace{12pt}
 
-```{r fig.cap=paste("\\label{fig:bitcoin_subset4}Residual Analysis Linear fitted Model")}
+```{r fig.cap=paste("\\label{fig:res_lin}Residual Analysis Linear fitted Model")}
 residual_analysis_qq <- function(myresiduals, title = 'QQ Plot of Residuals') {
 data=as.data.frame(qqnorm( myresiduals , plot=F))
 ggplot(data,aes(x,y)) + 
@@ -191,34 +197,20 @@ ggplot(data,aes(x,y)) +
   ylab('Sample') +
   ggtitle(title)
 }
-
 checkresiduals(model.ln)
-
 ```
-
 
 \vspace{12pt}
 
-```{r fig.cap=paste("\\label{fig:bitcoin_subset5}Residual Analysis Linear fitted Model")}
+```{r fig.cap=paste("\\label{fig:lin_qq}QQ plot Linear Model")}
 residual_analysis_qq(residuals(model.ln))
 ```
 
 \vspace{12pt}
 
-Figure \ref{fig:bitcoin_subset4} and \ref{fig:bitcoin_subset5} shows the panel above gives a (time series) plot, ACF, and histogram of the standardized residuals for the linear model of the Bitcoin time seriesshows and the normal QQ plot of residuals.
-
-The standardized residuals show large deviations from the mean 0 in the (time series) plot, and an asymmetric distribution in the histogram, suggesting large errors. The QQ-plot also shows points diverging away from the straight line at either tail, indicating the residuals are not normally distributed. The ACF shows a slow decaying pattern with many significant lags, suggestive of auto correlation.
-
-The Shapiro-Wilk test of normality (not shown) returned a p-value of 1.204e-15, so the NULL hypothesis is rejected, again suggesting that the residuals are not derived from a normally distributed population.
-The linear model does not pass the diagnostic checks, thus the linear model does not capture all the information in the time series and is not suitable for forecasting.
-
-\vspace{12pt}
-
-
 ```{r}
 shapiro.test(as.vector(residuals(model.ln)))
 ```
-
 
 ## Quadratic Model
 
@@ -229,6 +221,10 @@ model.qa = lm(Bitcoin.2017.zoo~ t + t2) # label the quadratic trend model as mod
 summary(model.qa)
 ```
 
+Figure \ref{fig:bitcoin_subset6} shows the plots give the regression models for the quadratic are statistically significant, with the same p-value of 2.2e-16 and R-squared values; 0.7198.
+
+\vspace{12pt}
+
 ```{r fig.cap=paste("\\label{fig:bitcoin_subset6}Quadratic fitted Model Curve")}
 ggplot(Bitcoin.2017,aes(Date,Close))+ 
   geom_line()  +
@@ -237,78 +233,84 @@ ggplot(Bitcoin.2017,aes(Date,Close))+
   ggtitle('Quadratic fitted Model Curve - Bitcoin Daily Prices') +
   geom_line(aes(y=fitted(model.qa)),color='#fc5e13')
 ```
-\vspace{12pt}
-
-Figure \ref{fig:bitcoin_subset6} shows the plots give the regression models for the quadratic are statistically significant, with the same p-value of 2.2e-16 and R-squared values; 0.7198.
-
 
 \vspace{12pt}
 
 ## Residual Analysis - Quadratic Model
 
-Below are the findings of residuals from linear model
+Below are the findings of residuals from Quadratic model:
+
+* Figure \ref{fig:res_quad} shows the time series plot, ACF, and histogram of the standardized residuals for the quadratic Model
+
+* The standardized residuals show large deviations from the mean 0 in the (time series) plot, and an asymmetric distribution in the histogram, suggesting large errors. The QQ-plot in figure \ref{fig:quad_qq} shows points diverging away from the straight line at either tail, indicating the residuals are not normally distributed. The ACF shows a slow decaying pattern with many significant lags, suggestive of auto correlation.
+
+* The Shapiro-Wilk test of normality (not shown) returned a p-value of 2.2e-16, so the NULL hypothesis is rejected, again suggesting that the residuals are not derived from a normally distributed population.
+
+The quadratic model does not pass the diagnostic checks, thus the quadratic model does not capture all the information in the time series and is not suitable for forecasting.
 
 \vspace{12pt}
 
-```{r fig.cap=paste("\\label{fig:bitcoin_subset7}Residual Analysis Quadratic fitted Model")}
+```{r fig.cap=paste("\\label{fig:res_quad}Residual Analysis Quadratic fitted Model")}
 checkresiduals(model.qa)
 ```
 
 
 \vspace{12pt}
 
-```{r fig.cap=paste("\\label{fig:bitcoin_subset8}Residual Analysis Linear fitted Model")}
+```{r fig.cap=paste("\\label{fig:quad_qq}QQ plot quadratic Model")}
 residual_analysis_qq(residuals(model.qa))
-
 ```
 \vspace{12pt}
 
-Figure \ref{fig:bitcoin_subset7} and \ref{fig:bitcoin_subset8} shows the panel above gives a (time series) plot, ACF, and histogram of the standardized residuals for the quadratic Model of the Bitcoin time series shows and the normal QQ plot of residuals.
-
-The standardized residuals show large deviations from the mean 0 in the (time series) plot, and an asymmetric distribution in the histogram, suggesting large errors. The QQ-plot also shows points diverging away from the straight line at either tail, indicating the residuals are not normally distributed. The ACF shows a slow decaying pattern with many significant lags, suggestive of auto correlation.
-
-The Shapiro-Wilk test of normality (not shown) returned a p-value of 2.2e-16, so the NULL hypothesis is rejected, again suggesting that the residuals are not derived from a normally distributed population.
-The linear model does not pass the diagnostic checks, thus the linear model does not capture all the information in the time series and is not suitable for forecasting.
-
-\vspace{12pt}
-
-
-\vspace{12pt}
 
 ```{r}
 shapiro.test(as.vector(residuals(model.qa)))
 ```
 
-# Models for Nonstationary Time Series
+# ARIMA Models
 
-Auto regressive behaviour and non staionay
-Staionay is the first thing we need to check.
+## ARIMA Initial Diagnosis
 
-```{r fig.cap=paste("\\label{fig:bitcoin_subset9}ACF and PACF of Bitcoin Prices")}
+We'll analyze ACF and PACF to identify AR and MA orders. Below are the results:
+
+* Figure \ref{fig:acf_pacf} shows points in the time series, with a trend and change in variance.
+
+* The ACF plot shows a slowly decaying pattern with many significant lags. There is no indication of a wave/sine pattern, so that a seasonal component is not determined. *Trend suggests non stationarity.*
+
+* PACF plot show a large 1st significant lag, with 4 smaller significant/near significant lags.
+
+The time series needs to be stabilized and de-trended prior to specifying a set of possible ARIMA models.
+
+\vspace{12pt}
+
+
+```{r fig.cap=paste("\\label{fig:acf_pacf}ACF and PACF of Bitcoin Prices")}
 ggtsdisplay(Bitcoin.2017.zoo,
             main = 'ACF and PACF of Bitcoin Prices', 
             ylab='Closing Price (USD)')
 ```
-\vspace{12pt}
-
-Figure \ref{fig:bitcoin_subset9} shows the uppermost plot in the panel shows points in the time series, with a trend and change in variance.
-
-The ACF plot shows a slowly decaying pattern with many significant lags. There is no indication of a wave/sine pattern, so that a seasonal component is not determined.
-
-PACF plot show a large 1st significant lag, with 4 smaller significant/near significant lags.
-The time series needs to be stabilized and de-trended prior to specifying a set of possible ARIMA models.
 
 
 \vspace{12pt}
 
-stategy to make stationay is transfromation.
 
-```{r fig.cap=paste("\\label{fig:bitcoin_subset10}BoxCox Transformation")}
+## Transformation
+
+Figure \ref{fig:boxcox} shows calculation of the log-likelihood for each lambda value, using the yule-walker method gave a lambda value 0.1-0.2. log transformation is not the best transformation according to boxcox plot. 
+
+\vspace{12pt}
+
+```{r fig.cap=paste("\\label{fig:boxcox}BoxCox Transformation")}
 Bitcoin.transform = BoxCox.ar(Bitcoin.2017.zoo, method = 'yule-walker') 
-
 ```
 
-```{r fig.cap=paste("\\label{fig:bitcoin_subset11}Boxcox Transformed & First Differenced Series")}
+\vspace{12pt}
+
+BoxCox transformation was applied to stabilize the time series. First differencing was applied to de-trend the time series. Figure \ref{fig:diff_series} transformation and differencing.
+
+\vspace{12pt}
+
+```{r fig.cap=paste("\\label{fig:diff_series}Boxcox Transformed & First Differenced Series")}
 lambda = sum(Bitcoin.transform$ci)/length(Bitcoin.transform$ci)
 Bitcoin.boxcox = (Bitcoin.2017.zoo^lambda - 1) / lambda 
 Bitcoin.diff = base::diff(Bitcoin.boxcox, differences = 1)
@@ -317,29 +319,27 @@ autoplot(Bitcoin.diff) +
   ggtitle('Boxcox Transformed & First Differenced Series')
 ```
 
-```{r fig.cap=paste("\\label{fig:bitcoin_subset12}Boxcox Transformed & First Differenced ACF and PACF plots")}
+\vspace{12pt}
+
+## Diagnosis - Transformed Series
+
+Figure \ref{fig:diagnosis_diff} shows the results of transformed and differenced series.
+
+* The ACF plot shows 2 significant lags, i.e. q=2.
+
+* PACF plot shows 5 significant lags, however the 5th is ~lag 80, so not included, i.e. p=4, but the adjacent value p=3 may also be considered.
+
+* Dickey-Fuller Unit-Root test gave a p-value of 0.01, thus the NULL hypothesis is rejected, and in turn the time series is determined to be stationary.
+
+*ARIMA(4,1,2), ARMIA(3,1,2)} are included in the set of possible models*
+
+\vspace{12pt}
+
+```{r fig.cap=paste("\\label{fig:diagnosis_diff}Boxcox Transformed & First Differenced ACF and PACF plots")}
 ggtsdisplay(Bitcoin.diff, lag.max = 96,ci.type='ma',
             main = 'Boxcox Transformed & First Differenced ACF and PACF plots', 
             ylab='')
 ```
-
-\vspace{12pt}
-
-Figure \ref{fig:bitcoin_subset12} shows calculation of the log-likelihood for each lambda value, using the yule-walker method gave a lambda value 0.1-0.2. 
-
-A BoxCox transformation was applied to stabilize the time series.
-
-1 differencing was applied to de-trend the time series, i.e. d=1.
-
-The uppermost plot in the panel shows the result of transformation and differencing.
-
-Dickey-Fuller Unit-Root test gave a p-value of 0.01, thus the NULL hypothesis is rejected, and in turn the time series is determined to be stationary.
-
-The ACF plot shows 2 significant lags, i.e. q=2.
-
-PACF plot shows 5 significant lags, however the 5th is ~lag 80, so not included, i.e. p=4, but the adjacent value p=3 may also be considered.
-{ARIMA(4,1,2), ARMIA(3,1,2)} are included in the set of possible models.
-
 
 \vspace{12pt}
 
@@ -348,35 +348,43 @@ PACF plot shows 5 significant lags, however the 5th is ~lag 80, so not included,
 adf.test(Bitcoin.diff)
 ```
 
+\vspace{12pt}
 
-```{r}
-eacf(Bitcoin.diff)
-# ARIMA(0,1,0),ARIMA(1,1,1),ARIMA(2,1,2),ARIMA(4,1,3)
-```
+## Extended Autocorrelation Function
 
-The eacf plot shown above left, identified possible smaller ARIMA models with a p=1, 2 and q=1, 2.
-
-
-```{r fig.cap=paste("\\label{fig:bitcoin_subset13}BIC Table")}
-res1 = armasubsets(y=Bitcoin.diff,nar=14,nma=14,y.name='test',ar.method='mle')
-plot(res1)
-#ARIMA(4,1,4),ARIMA(5,1,4)
-```
-
+The eacf matrix shown below, identified possible smaller ARIMA models with a p=1, 2 and q=1, 2.
 
 \vspace{12pt}
 
-Figure \ref{fig:bitcoin_subset13} shows the BIC plot given above right, identified possible larger ARIMA models with a p=4, 5 and q=4. A p=10 was disregarded with smaller values identified.
+```{r}
+eacf(Bitcoin.diff)
+```
+
+\vspace{12pt}
+
+## ARMA Subsets
+
+Figure \ref{fig:arma_subset} shows the BIC plot, identified possible larger ARIMA models with a p=4, 5 and q=4. A p=10 was disregarded with smaller values identified.
 
 Thus {ARIMA(1,1,1), ARMIA(1,1,2), ARIMA(2,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(5,1,4)} are added to the set of possible models.
 
 \vspace{12pt}
 
-```{r}
-#The final set of possible models is 
-# ARIMA(0,1,0),ARIMA(1,1,1),ARIMA(2,1,2),ARIMA(4,1,3)
-# ARIMA(4,1,4),ARIMA(5,1,4)
+```{r fig.cap=paste("\\label{fig:arma_subset}BIC Table")}
+res1 = armasubsets(y=Bitcoin.diff,nar=14,nma=14,y.name='test',ar.method='mle')
+plot(res1)
+```
 
+
+\vspace{12pt}
+
+## Model Fitting & Significance Tests
+
+From the decided set of ARIMA models, we'll perform coefficient significance tests using maximum likelihood and conditional sum-of-squares methods. 
+
+\vspace{12pt}
+
+```{r}
 # ARIMA(1,1,1)
 model_111_css = arima(Bitcoin.boxcox, order=c(1,1,1),method='CSS')
 coeftest(model_111_css)
@@ -385,6 +393,8 @@ model_111_ml = arima(Bitcoin.boxcox, order=c(1,1,1),method='ML')
 coeftest(model_111_ml)
 
 ```
+
+\vspace{12pt}
 
 ```{r}
 # ARIMA(1,1,2)
@@ -395,6 +405,8 @@ model_112_ml = arima(Bitcoin.boxcox,order=c(1,1,2),method='ML')
 coeftest(model_112_ml)
 ```
 
+\vspace{12pt}
+
 ```{r}
 # ARIMA(2,1,1)
 model_211_css = arima(Bitcoin.boxcox,order=c(2,1,1),method='CSS')
@@ -403,6 +415,8 @@ coeftest(model_211_css)
 model_211_ml = arima(Bitcoin.boxcox,order=c(2,1,1),method='ML')
 coeftest(model_211_ml)
 ```
+
+\vspace{12pt}
 
 ```{r}
 # ARIMA(2,1,2)
@@ -413,6 +427,8 @@ model_212_ml = arima(Bitcoin.boxcox,order=c(2,1,2),method='ML')
 coeftest(model_212_ml)
 ```
 
+\vspace{12pt}
+
 ```{r}
 # ARIMA(3,1,2)
 model_312_css = arima(Bitcoin.boxcox,order=c(3,1,2),method='CSS')
@@ -422,6 +438,7 @@ model_312_ml = arima(Bitcoin.boxcox,order=c(3,1,2),method='ML')
 coeftest(model_312_ml)
 ```
 
+\vspace{12pt}
 
 ```{r}
 # ARIMA(4,1,2)
@@ -432,8 +449,9 @@ model_412_ml = arima(Bitcoin.boxcox,order=c(4,1,2),method='ML')
 coeftest(model_412_ml)
 ```
 
-```{r}
+\vspace{12pt}
 
+```{r}
 # ARIMA(4,1,4)
 model_414_css = arima(Bitcoin.boxcox,order=c(4,1,4),method='CSS')
 coeftest(model_414_css)
@@ -441,6 +459,8 @@ coeftest(model_414_css)
 model_414_ml = arima(Bitcoin.boxcox,order=c(4,1,4),method='ML')
 coeftest(model_414_ml)
 ```
+
+\vspace{12pt}
 
 ```{r}
 # ARIMA(5,1,4)
@@ -452,35 +472,70 @@ coeftest(model_514_ml)
 
 ```
 
+\newpage
+
+### AIC and BIC Values
+
+*From the AIC table \ref{tab:aic}, BIC table \ref{tab:bic} and coefficient significance tests, we selected ARIMA (3,1,2) model. Next we'll perform diagnostic check of selected model*
+
+\vspace{12pt}
 
 ```{r}
 source('sort.score.r')
-sort.score(stats::AIC(model_111_ml,model_112_ml,model_211_ml,model_212_ml,model_312_ml,model_412_ml,model_414_ml,model_514_ml), score = "aic")
-sort.score(stats::BIC(model_111_ml,model_112_ml,model_211_ml,model_212_ml,model_312_ml,model_412_ml,model_414_ml,model_514_ml), score = "bic" )
+aic.scores <- sort.score(stats::AIC(model_111_ml,model_112_ml,model_211_ml,model_212_ml,
+                                   model_312_ml,model_412_ml,model_414_ml,model_514_ml), 
+                        score = "aic")
+kable(x=aic.scores, caption="\\label{tab:aic}AIC sorted models") %>%
+  kable_styling(latex_options = "striped")
 ```
 
 
 \vspace{12pt}
 
+
 ```{r}
-fit <- Arima(Bitcoin.2017.zoo, order=c(3,1,2), lambda = lambda)
-summary(fit)
+bic.scores = sort.score(stats::BIC(model_111_ml,model_112_ml,model_211_ml,model_212_ml,
+                                   model_312_ml,model_412_ml,model_414_ml,model_514_ml), 
+                        score = "bic" )
+kable(bic.scores, caption="\\label{tab:bic}BIC sorted models") %>%
+  kable_styling(latex_options = "striped")
 ```
+
+
+\vspace{12pt}
 
 ## Residual Analysis - ARIMA Model
 
-Below are the findings of residuals from linear model
+Below are the findings of residuals from ARIMA(3,1,2) model:
+
+* From the time series plot Figure \ref{fig:arima_res} of standard residuals, we can see that residuals are randomly distributed with few spiles, around zero mean level. 
+
+* Histogram of studentised residuals within [-2,2] range are not distributed so well. Still it can be considered.
+
+* ACF plot has 2 significant lags at 19 and 20. 
+
+* qq plot in figure \ref{fig:arima_qq} shows deviation between sample and theoretical values.
+
+* Shapiro-Wilk normality test fails to reject null hypothesis. Studentised residuals are coming from normally distributed population
+
+* Ljung box test (Figure \ref{fig:boxtest_arima}) of auto correlation for all lags fails to reject null hypothesis. Data point correlations result from randomness in the sampling process i.e. data are independently distributed
+
+*From the overall results, we can make forecasting using ARIMA(3,1,2) model.*
+
 
 \vspace{12pt}
 
-```{r fig.cap=paste("\\label{fig:bitcoin_subset14}Residual Analysis Quadratic fitted Model")}
+```{r fig.cap=paste("\\label{fig:arima_res}Residual Analysis Quadratic fitted Model")}
+fit <- Arima(Bitcoin.2017.zoo, order=c(3,1,2), lambda = lambda)
+summary(fit)
+
 checkresiduals(fit)
 ```
 
 
 \vspace{12pt}
 
-```{r fig.cap=paste("\\label{fig:bitcoin_subset15}Residual Analysis Linear fitted Model")}
+```{r fig.cap=paste("\\label{fig:arima_qq}Residual Analysis Linear fitted Model")}
 residual_analysis_qq(residuals(fit))
 ```
 
@@ -492,7 +547,7 @@ shapiro.test(as.vector(residuals(fit)))
 
 \vspace{12pt}
 
-```{r fig.cap=paste("\\label{fig:bitcoin_subset16}Ljung-Box Test")}
+```{r fig.cap=paste("\\label{fig:boxtest_arima}Ljung-Box Test")}
 x = residuals(fit)
 k=0
 LBQPlot(x, lag.max = length(x)-1 , StartLag = k + 1, k = 0, SquaredQ = FALSE)
@@ -500,126 +555,185 @@ grid()
 ```
 
 
-## Forecast 
+## ARIMA Forecasting 
 
-```{r fig.cap=paste("\\label{fig:bitcoin_subset17}Forecast from ARIMA[3,1,2]")}
-autoplot(forecast(fit,h=10))
-```
-
-
-\vspace{12pt}
-
-Figure \ref{fig:bitcoin_subset17} shows the original time series for the historical price of bitcoin.
+Figure \ref{fig:arima_forecast} shows the original time series for the historical price of bitcoin.
 A prediction of the following 10 days is given with the ARIMA(3,1,2) model. 
 
 The forecast shows a steady bitcoin price, with a possible increase or decrease within the range of the confidence interval (80 and 95%) bounds.
 
+\vspace{12pt}
+
+
+```{r fig.cap=paste("\\label{fig:arima_forecast}Forecast from ARIMA(3,1,2)")}
+autoplot(forecast(fit,h=10))
+```
+
+
+
+
+## MASE Error
+
+The Model has mean absolute squared error of 0.9891814, while the forecast has error of 3.232775. Error is 3 times the original model. Here we notice that ARIMA model is not suitable for bitcoin prices forecasting. It has not able to capture variation in series. We will try fitting GARCH model for changing variance. 
 
 \vspace{12pt}
 
 ```{r}
+source('MASE.r')
+
 Bitcoin.forecast <- read_csv("../data/Bitcoin_Prices_Forecasts.csv")
 Bitcoin.forecast$Date = as.Date(Bitcoin.forecast$Date,'%d/%m/%y')
-```
 
-## MASE Error
-
-```{r}
-source('MASE.r')
 MASE(Bitcoin.forecast$`Closing price`,
      as.vector(tail(fitted(forecast(fit,h=10)),10)))
 ```
 
 
+# Heteroscedasticity Models
 
-```{r fig.cap=paste("\\label{fig:bitcoin_subset18}McLeod Li Test Statistics for Bitcoin")}
+Figure \ref{fig:mcleod} shows McLeod-Li test is significnat at 5% level of significance for all lags. This gives a strong idea about existence of volatiliy clustering. Figure \ref{fig:qq_hetro} of QQ plot with fat tails is in accordance with volatiliy clustering
+
+\vspace{12pt}
+
+```{r fig.cap=paste("\\label{fig:mcleod}McLeod Li Test Statistics for Bitcoin")}
 McLeod.Li.test(y=Bitcoin.2017.zoo,main="McLeod-Li Test Statistics for Bitcoin")
+```
 
+```{r fig.cap=paste("\\label{fig:qq_hetro}QQ plot for Bitcoin")}
 residual_analysis_qq(Bitcoin.2017.zoo, 'QQ Plot')
 ```
 
-# Heteroscedasticity Models
-
-```{r fig.cap=paste("\\label{fig:bitcoin_subset19}McLeod Li Test Statistics for Daily Google Returns")}
-McLeod.Li.test(y=Bitcoin.2017.zoo,main="McLeod-Li Test Statistics for Daily Google Returns")
-```
 
 \vspace{12pt}
 
-Figure \ref{fig:bitcoin_subset19} shows McLeod-Li test is significnat at 5% level of significance for all lags. This gives a strong idea about existence of volatiliy clustering.
+We will see ACF and PACF of Absolute and squared series to see ARCH effect. 
+
+## GARCH tests
+
+Figure \ref{fig:abs_garch} shows an absolute ACF and FACF plots. We observe many significant lags in both ACF and PACF. EACF do not suggest an ARMA(0,0)
+
+We can identify ARMA(1,0) model for absolute value series. 
+Proposed GARCH models are GARCH(1,0). *Here we are estimating with GARCH(p,q) orders, where p is for AR and q for MA.*
 
 \vspace{12pt}
 
-
-
-```{r fig.cap=paste("\\label{fig:bitcoin_subset20}The sample ACF PACFplot for absolute return series")}
-#So we'll use absolute value and square transformations to figure out this ARCH effect.
+```{r fig.cap=paste("\\label{fig:abs_garch}ACF & PACF plot for absolute bitcoin series")}
 abs.bitcoin = abs(Bitcoin.2017.zoo)
 sq.bitcoin = Bitcoin.2017.zoo^2
 
 par(mfrow=c(1,2))
-acf(abs.bitcoin, ci.type="ma",main="The sample ACF plot for absolute return series")
-pacf(abs.bitcoin, main="The sample PACF plot for absolute return series")
+acf(abs.bitcoin, ci.type="ma",main="ACF plot absolute series")
+pacf(abs.bitcoin, main="PACF plot absolute series")
 ```
-
-\vspace{12pt}
-
-Figure \ref{fig:bitcoin_subset20} shows an absolute value transformation, we observe many significant lags in both ACF and PACF. 
-EACF do not suggest an ARMA(0,0)
-
-EACF, we can identify ARMA(1,0), ARMA(1,1), and ARMA(2,1) models for absolute value series. 
-Proposed GARCH models are GARCH(0,1), GARCH(1,1), GARCH(1,2).
-
-
-\vspace{12pt}
-
 
 ```{r}
 eacf(abs.bitcoin)
 ```
-# After the absolute value transformation, we boserve many signficicant lags in 
-#both ACF and PACF. Also, EACF do not suggest an ARMA(0,0) model.
-# From the EACF, we can identify ARMA(1,0), ARMA(1,1), and ARMA(2,1) models for absolute 
-#value series. 
-# These models correspond to parameter settings of [max(1,1),1], [max(1,2),1] and [max(2,2),2]. 
-# So the corresponding tentative GARCH models are GARCH(0,1), GARCH(1,1), GARCH(1,2).
 
-```{r fig.cap=paste("\\label{fig:bitcoin_subset21}The sample ACF and PACF plot for squared return series")}
+\vspace{12pt}
+
+Figure \ref{fig:sq_garch} shows an squared ACF and FACF plots. We observe many significant lags in both plots. EACF Matric do not suggest an ARMA(0,0)
+
+We can identify ARMA(1,1) model for absolute value series. Proposed GARCH models are GARCH(1,1).
+
+\vspace{12pt}
+
+```{r fig.cap=paste("\\label{fig:sq_garch}ACF & PACF plot for Squared bitcoin series")}
 par(mfrow=c(1,2))
-acf(sq.bitcoin, ci.type="ma",main="The sample ACF plot for squared return series")
-pacf(sq.bitcoin, main="The sample PACF plot for squared return series")
+acf(sq.bitcoin, ci.type="ma",main="ACF plot squared series")
+pacf(sq.bitcoin, main="PACF plot squared series")
 ```
+
+\vspace{12pt}
 
 ```{r}
 eacf(sq.bitcoin)
 ```
-# After the square transformation, we boserve many signficicant lags in both ACF and PACF. Also, EACF do not suggest an ARMA(0,0) model.
-# From the EACF, we can identify ARMA(1,1), ARMA(1,2), and ARMA(2,2) models for squared series. 
-# These models correspond to parameter settings of [max(1,1),1], [max(1,2),1], [max(1,2),2], and [max(2,2),2]. So the corresponding 
-# tentative GARCH models are GARCH(1,1), GARCH(2,1), GARCH(2,2).
+
+
+
+## GARCH Models
+
+From the predicted tentative models, we'll fit GARCH and check the parameters significance. 
+
+\vspace{12pt}
 
 ```{r}
-m.11 = garch(Bitcoin.2017.zoo,order=c(1,1),trace = FALSE)
-summary(m.11) # All the coefficients are significant at 5% level of significance.
-m.11_2 = garchFit(formula = ~garch(1,1), data =Bitcoin.2017.zoo )
-summary(m.11_2)
-
-m.12 = garch(Bitcoin.2017.zoo,order=c(1,2),trace = FALSE)
-summary(m.12)# All the coefficients but aplha_2 are significant at 5% level of significance.
-m.12_2 = garchFit(formula = ~garch(2,1), data =Bitcoin.2017.zoo, trace = FALSE )
-summary(m.12_2)
-
-m.22 = garch(Bitcoin.2017.zoo,order=c(2,2),trace = FALSE)
-summary(m.22) # Higher order parameters are insignificant
-m.22_2 = garchFit(formula = ~garch(2,2), data =Bitcoin.2017.zoo, trace = FALSE, cond.dist = "QMLE" )
-summary(m.22_2)
-
+m.10 = garchFit(formula = ~garch(1,0), data =Bitcoin.diff, trace = FALSE, cond.dist = "QMLE" )
+summary(m.10)
 ```
 
-Conclusions:
+\vspace{12pt}
 
-Regression models are not suitable for daily bitcoin closing prices. 
-ARIMA model is good, but the mean absolute scaled error of 3.2, (three times higher than original) is not practical for prediction.
-ARIMA models are not suitable as they are unable to capture high volatility in series.
-Combination of ARIMA (mean) and GARCH (variance) prediction model can be better for daily bitcoin closing prices.
 
+```{r}
+m.11 = garchFit(formula = ~garch(1,1), data =Bitcoin.diff, trace = FALSE, cond.dist = "QMLE" )
+summary(m.11)
+```
+
+GARCH(1,0) model has all significant parameters. Next we'll perform residual analysis on selected model. 
+
+## Residual Analysis - GARCH
+
+Results of residual from figure \ref{fig:garch_res}:
+
+* From the time series plot of standard residuals, we can see that residuals are randomly distributed with high variation in end
+
+* Histogram of studentised residuals within [-4,4] range are not distributed well but also positive skewed
+
+* ACF plot has 2 significant lags at 19 and 20. PACF has significant lag at 19
+
+* qq plot shows deviation between sample and theoretical values.
+
+* Ljung box test of auto correlation for lags up to 19 fails to reject null hypothesis. Data point correlations result from randomness in the sampling process i.e. data are independently distributed. After lag 20, there is significant correlation for few lags
+
+*From the overall results, we will go  with GARCH(1,0) model.*
+
+\vspace{12pt}
+
+```{r fig.cap=paste("\\label{fig:garch_res}Residual Analysis GARCH(1,0)"), fig.height=8}
+source('residual.analysis.R')
+fit = garch(Bitcoin.diff,order=c(1,0),trace = FALSE)
+residual.analysis(fit,class="GARCH",start=2)
+```
+
+
+## Forecasting with mean and variance
+
+Here we'll forecast bitcoin values with ARMA and standard GARCH model for next 10 values. Figure \ref{fig:garch_forecast} shows the next 10 forecast. 
+
+\vspace{12pt}
+
+```{r fig.cap=paste("\\label{fig:garch_forecast}Forecast with ARMA and GARCH")}
+model<-ugarchspec(variance.model = list(model = "sGARCH", garchOrder = c(1, 0)), 
+                   mean.model = list(armaOrder = c(3, 2), include.mean = FALSE), 
+                   distribution.model = "norm")
+model.fit<-ugarchfit(spec=model,data=Bitcoin.2017.zoo)
+
+forecast.model.fit = ugarchforecast(model.fit, n.ahead = 10)
+plot(forecast.model.fit, which=1)
+```
+
+
+## Forecasting with GARCH Bootstrap
+
+Here we'll predict 10 values with bootstrap method. Below are the summary statistics for forecast.
+
+\vspace{12pt}
+
+```{r}
+bootp = ugarchboot(model.fit, method = "Partial", n.ahead = 10, n.bootpred = 500)
+show(bootp)
+```
+
+# Limitations
+
+* The series is highly volatile, regression and ARIMA models are not suitable for prediction
+
+* Other time series models can be applied like exponential state space models, distributed lag models and neural network (`nnetar`)
+
+# Conclusions
+
+Regression models are not suitable for daily bitcoin closing prices.ARIMA model is good, but the mean absolute scaled error of 3.2, (three times higher than original) is not practical for prediction. ARIMA models are not suitable as they are unable to capture high volatility in series. Combination of ARMA (mean) and GARCH (variance) prediction model are better for daily bitcoin closing prices.
+
+# References
